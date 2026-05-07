@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物品交换平台 - 博思楼交换点</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        :root {
+            --white: #ffffff;
+            --light-gray: #f7f7f7;
+            --gray: #e0e0e0;
+            --mid-gray: #999;
+            --dark-gray: #555;
+            --black: #1a1a1a;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+        }
+
+        body {
+            background-color: var(--light-gray);
+            color: var(--black);
+            line-height: 1.6;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; display: none;
+        }
+        .modal {
+            background: var(--white); width: 90%; max-width: 520px;
+            padding: 2rem; border-radius: 12px;
+        }
+        .modal-title {
+            font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; text-align: center;
+        }
+        .modal-content {
+            margin-bottom: 1.5rem; line-height: 1.8;
+        }
+        .modal-btns {
+            display: flex; gap: 1rem; justify-content: center;
+        }
+        .modal-btn {
+            padding: 0.7rem 1.5rem; background: var(--black);
+            color: var(--white); border: none; border-radius: 6px; cursor: pointer;
+        }
+        .btn-cancel {
+            background: var(--mid-gray);
+        }
+
+        .navbar {
+            background-color: var(--black); color: var(--white);
+            padding: 1rem 2rem; display: flex; justify-content: space-between;
+            align-items: center; position: sticky; top: 0; z-index: 999;
+        }
+        .nav-logo {
+            font-weight: bold; font-size: 1.2rem;
+        }
+        .nav-menu {
+            display: flex; gap: 1.2rem;
+        }
+        .nav-menu a {
+            color: var(--white); text-decoration: none;
+            padding: 0.3rem 0; border-bottom: 2px solid transparent;
+            cursor: pointer;
+        }
+        .nav-menu a.active {
+            border-color: var(--white);
+        }
+
+        .container {
+            max-width: 1200px; margin: 2rem auto; padding: 0 1rem;
+        }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .auth-box {
+            background: var(--white); max-width: 420px;
+            margin: 4rem auto; padding: 2rem; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .auth-box h2 {
+            text-align: center; margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block; margin-bottom: 0.5rem; color: var(--dark-gray);
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 0.9rem;
+            border: 1px solid var(--gray); border-radius: 6px;
+            outline: none; font-size: 0.95rem;
+        }
+        .form-group textarea {
+            resize: vertical; min-height: 90px;
+        }
+        .btn {
+            width: 100%; padding: 0.9rem;
+            background-color: var(--black); color: var(--white);
+            border: none; border-radius: 6px; cursor: pointer; font-size: 1rem;
+        }
+        .switch-text {
+            text-align: center; margin-top: 1rem; color: var(--dark-gray);
+            cursor: pointer;
+        }
+
+        .items-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.5rem; margin-top: 1rem;
+        }
+        .item-card {
+            background: var(--white); border-radius: 10px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s;
+        }
+        .item-img {
+            width: 100%; height: 200px; object-fit: cover;
+        }
+        .item-info { padding: 1.2rem; }
+        .item-name { font-weight: bold; font-size: 1rem; margin-bottom: 0.4rem; }
+        .item-desc { color: var(--dark-gray); font-size: 0.9rem; margin-bottom: 0.6rem; }
+        .item-type {
+            font-size: 0.85rem; color: var(--dark-gray);
+            background: var(--light-gray); padding: 4px 8px;
+            border-radius: 4px; display: inline-block; margin-bottom: 0.8rem;
+        }
+        .item-user { font-size: 0.85rem; color: var(--mid-gray); margin-bottom: 0.8rem; }
+        .item-btn {
+            padding: 0.6rem 1rem; background: var(--black);
+            color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 0.85rem; margin-right: 0.5rem; margin-bottom: 0.5rem;
+        }
+        .item-btn.success { background: var(--success); }
+        .item-btn.danger { background: var(--danger); }
+
+        .notice-list { margin-top: 1rem; }
+        .notice-item {
+            background: white; padding: 1.2rem; border-radius: 10px;
+            margin-bottom: 1rem; border-left: 4px solid var(--black);
+        }
+        .notice-title { font-weight: bold; margin-bottom: 0.3rem; }
+        .notice-time { color: var(--mid-gray); font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .notice-content { margin-bottom: 1rem; }
+        .notice-btn {
+            padding: 0.5rem 1rem; border: none; border-radius: 6px;
+            cursor: pointer; margin-right: 0.6rem;
+        }
+        .notice-agree { background: var(--success); color: white; }
+        .notice-refuse { background: var(--danger); color: white; }
+
+        .chat-layout {
+            display: flex; gap: 1rem; background: white;
+            border-radius: 10px; overflow: hidden; height: 600px;
+        }
+        .chat-list {
+            width: 260px; border-right: 1px solid var(--gray);
+            padding: 1rem; overflow-y: auto;
+        }
+        .chat-item {
+            padding: 1rem; border-radius: 8px; cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+        .chat-item.active {
+            background: var(--light-gray);
+        }
+        .chat-window {
+            flex: 1; display: flex; flex-direction: column;
+        }
+        .chat-header-bar {
+            padding: 1rem; border-bottom: 1px solid var(--gray);
+            font-weight: bold;
+        }
+        .chat-messages {
+            flex: 1; padding: 1rem; overflow-y: auto;
+        }
+        .chat-input-bar {
+            padding: 1rem; border-top: 1px solid var(--gray);
+            display: flex; gap: 0.8rem;
+        }
+        .chat-input-bar input {
+            flex: 1; padding: 0.8rem; border: 1px solid var(--gray);
+            border-radius: 30px; outline: none;
+        }
+        .chat-input-bar button {
+            padding: 0 1.5rem; background: var(--black);
+            color: white; border: none; border-radius: 30px; cursor: pointer;
+        }
+        .msg { margin: 8px 0; max-width: 75%; }
+        .msg-me { margin-left: auto; }
+        .msg-you { margin-right: auto; }
+        .msg-bubble {
+            padding: 8px 12px; border-radius: 15px; display: inline-block;
+        }
+        .msg-me .msg-bubble {
+            background: var(--black); color: white;
+        }
+        .msg-you .msg-bubble {
+            background: var(--light-gray);
+        }
+
+        .tip { color: var(--dark-gray); font-size: 0.9rem; margin: 0.5rem 0; }
+        .text-center { text-align: center; padding: 2rem 0; color: var(--mid-gray); }
+
+        /* 后台统计页样式 */
+        .stat-card {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+        }
+        .stat-card h3 {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 免责声明 -->
+<div class="modal-overlay" id="disclaimerModal">
+    <div class="modal">
+        <div class="modal-title">免责声明</div>
+        <div class="modal-content">
+            本平台为<b>免费物品交换平台</b>，仅提供信息展示服务<br><br>
+            1. 交换风险由双方自行承担，平台不承担任何纠纷责任<br>
+            2. 支持<b>自主线下私聊交换</b> 或 <b>博思楼一楼大厅</b>固定点交换<br>
+            3. 固定交换点：<b>博思楼一楼大厅</b>，请贴好物品标签<br>
+            4. 禁止发布违法、危险、侵权物品，违者责任自负<br>
+            5. 使用平台即代表已阅读并同意以上条款
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn" onclick="agreeDisclaimer()">我已阅读并同意</button>
+        </div>
+    </div>
+</div>
+
+<!-- 发布物品弹窗 -->
+<div class="modal-overlay" id="addItemModal">
+    <div class="modal">
+        <div class="modal-title">发布新物品</div>
+        <div class="form-group">
+            <label>物品名称 *</label>
+            <input type="text" id="itemName" placeholder="请输入物品名称">
+        </div>
+        <div class="form-group">
+            <label>物品描述 *</label>
+            <textarea id="itemDesc" placeholder="请输入物品描述"></textarea>
+        </div>
+        <div class="form-group">
+            <label>上传照片 * 必须上传</label>
+            <input type="file" id="itemPhoto" accept="image/*" required>
+        </div>
+        <div class="form-group">
+            <label>交换方式</label>
+            <select id="exchangeType">
+                <option value="线下私聊交换">自主线下私聊交换</option>
+                <option value="波斯楼一楼大厅">固定点：博思楼一楼大厅</option>
+            </select>
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn" onclick="publishItem()">确认发布</button>
+            <button class="modal-btn btn-cancel" onclick="closeAddModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导航 -->
+<div class="navbar">
+    <div class="nav-logo">物品交换平台</div>
+    <div class="nav-menu">
+        <a onclick="showPage('browse')">浏览物品</a>
+        <a onclick="showPage('my')">我的物品</a>
+        <a onclick="showPage('notice')">交换通知</a>
+        <a onclick="showPage('chat')">私信聊天</a>
+        <a onclick="showPage('admin')" id="adminNav" style="display:none">后台统计</a>
+        <a onclick="logout()">退出登录</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- 登录页 -->
+    <div id="login" class="page active">
+        <div class="auth-box">
+            <h2>用户登录</h2>
+            <div class="tip">公共交换点：博思楼一楼大厅</div>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="loginUser" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="loginPwd" placeholder="请输入密码">
+            </div>
+            <button class="btn" onclick="userLogin()">登录</button>
+            <div class="switch-text" onclick="switchToRegister()">没有账号？立即注册</div>
+        </div>
+    </div>
+
+    <!-- 注册页 -->
+    <div id="register" class="page">
+        <div class="auth-box">
+            <h2>用户注册</h2>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="regUser" placeholder="设置用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="regPwd" placeholder="设置密码">
+            </div>
+            <button class="btn" onclick="userRegister()">注册</button>
+            <div class="switch-text" onclick="switchToLogin()">已有账号？返回登录</div>
+        </div>
+    </div>
+
+    <!-- 浏览物品 -->
+    <div id="browse" class="page">
+        <h2>浏览所有物品</h2>
+        <div class="tip">固定交换点：<b>博思楼一楼大厅</b>（请贴好标签）</div>
+        <div class="items-grid" id="allItemsBox"></div>
+    </div>
+
+    <!-- 我的物品 -->
+    <div id="my" class="page">
+        <h2>我的物品</h2>
+        <button class="item-btn" onclick="openAddModal()" style="margin:10px 0">+ 发布新物品</button>
+        <div class="items-grid" id="myItemsBox"></div>
+    </div>
+
+    <!-- 交换通知 -->
+    <div id="notice" class="page">
+        <h2>交换通知</h2>
+        <div class="notice-list" id="noticeBox"></div>
+    </div>
+
+    <!-- 私信聊天 -->
+    <div id="chat" class="page">
+        <h2>私信聊天</h2>
+        <div class="chat-layout">
+            <div class="chat-list" id="chatUserList">
+                <div class="text-center">选择聊天对象</div>
+            </div>
+            <div class="chat-window">
+                <div class="chat-header-bar" id="chatTargetName">未选择聊天对象</div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-bar">
+                    <input type="text" id="chatInput" placeholder="输入消息...">
+                    <button onclick="sendMessage()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 后台统计页（仅开发商可见） -->
+    <div id="admin" class="page">
+        <h2>后台数据统计（开发商专用）</h2>
+        <div class="stat-card">
+            <h3>总用户数</h3>
+            <p id="stat-users">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>总物品数</h3>
+            <p id="stat-items">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>总通知数</h3>
+            <p id="stat-notices">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>总聊天消息数</h3>
+            <p id="stat-messages">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>所有用户列表</h3>
+            <div id="stat-user-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============= 全局配置 =============
+let currentUser = null;
+let currentChatTarget = null;
+let disclaimerAgreed = false;
+
+// 开发商账号（只有这个账号能看到后台）
+const ADMIN_USERNAME = "admin";
+
+// ============= 本地存储工具 =============
+const Storage = {
+    set(key, data) { localStorage.setItem(key, JSON.stringify(data)); },
+    get(key) { return JSON.parse(localStorage.getItem(key)) || []; },
+    init() {
+        if(!localStorage.getItem('users')) this.set('users', []);
+        if(!localStorage.getItem('items')) this.set('items', []);
+        if(!localStorage.getItem('notices')) this.set('notices', []);
+        if(!localStorage.getItem('messages')) this.set('messages', []);
+    }
+};
+Storage.init();
+
+// ============= 页面加载：恢复登录态 =============
+window.onload = () => {
+    document.getElementById('disclaimerModal').style.display = 'flex';
+    // 关键：刷新自动登录
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = savedUser;
+        alert(`自动登录成功，欢迎 ${currentUser}`);
+        showPage('browse');
+        toggleAdminNav();
+    }
+};
+
+// ============= 免责声明 =============
+function agreeDisclaimer() {
+    disclaimerAgreed = true;
+    document.getElementById('disclaimerModal').style.display = 'none';
+}
+
+// ============= 页面切换 =============
+function showPage(id) {
+    if(!disclaimerAgreed) { alert("请先同意免责声明！"); return; }
+    if(!currentUser && !['login','register'].includes(id)) {
+        alert("请先登录！");
+        showPage('login');
+        return;
+    }
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
+    document.querySelector(`.nav-menu a[onclick="showPage('${id}')"]`)?.classList.add('active');
+    if(id === 'browse') renderAllItems();
+    if(id === 'my') renderMyItems();
+    if(id === 'notice') renderNotices();
+    if(id === 'chat') renderChatList();
+    if(id === 'admin') renderAdminStats();
+}
+
+// ============= 登录注册 =============
+function switchToRegister() { showPage('register'); }
+function switchToLogin() { showPage('login'); }
+
+function userRegister() {
+    const user = document.getElementById('regUser').value.trim();
+    const pwd = document.getElementById('regPwd').value.trim();
+    if(!user || !pwd) return alert("请填写完整信息");
+    const users = Storage.get('users');
+    if(users.find(u => u.username === user)) return alert("用户名已存在");
+    users.push({ username: user, password: pwd });
+    Storage.set('users', users);
+    alert("注册成功！请登录");
+    showPage('login');
+}
+
+function userLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pwd = document.getElementById('loginPwd').value.trim();
+    const users = Storage.get('users');
+    const target = users.find(u => u.username === user && u.password === pwd);
+    if(!target) return alert("账号或密码错误");
+    currentUser = user;
+    // 关键：持久化登录态
+    localStorage.setItem('currentUser', user);
+    alert(`欢迎回来，${currentUser}`);
+    toggleAdminNav();
+    showPage('browse');
+}
+
+function logout() {
+    currentUser = null;
+    currentChatTarget = null;
+    localStorage.removeItem('currentUser');
+    document.getElementById('adminNav').style.display = 'none';
+    showPage('login');
+}
+
+// 是否显示后台入口
+function toggleAdminNav() {
+    if (currentUser === ADMIN_USERNAME) {
+        document.getElementById('adminNav').style.display = 'inline';
+    } else {
+        document.getElementById('adminNav').style.display = 'none';
+    }
+}
+
+// ============= 物品发布 =============
+function openAddModal() { document.getElementById('addItemModal').style.display = 'flex'; }
+function closeAddModal() { document.getElementById('addItemModal').style.display = 'none'; }
+
+function publishItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const desc = document.getElementById('itemDesc').value.trim();
+    const file = document.getElementById('itemPhoto').files[0];
+    const type = document.getElementById('exchangeType').value;
+    if(!name || !desc || !file) return alert("名称、描述、照片均为必填！");
+    
+    const reader = new FileReader();
+    reader.onload = e => {
+        const items = Storage.get('items');
+        items.push({
+            id: Date.now(), name, desc, img: e.target.result,
+            type, user: currentUser, time: new Date().toLocaleString()
+        });
+        Storage.set('items', items);
+        closeAddModal();
+        renderMyItems();
+        alert("物品发布成功！");
+    };
+    reader.readAsDataURL(file);
+}
+
+// ============= 渲染物品 =============
+function renderAllItems() {
+    const box = document.getElementById('allItemsBox');
+    const items = Storage.get('items').filter(i => i.user !== currentUser);
+    box.innerHTML = items.length ? items.map(item => `
+        <div class="item-card">
+            <img src="${item.img}" class="item-img">
+            <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-desc">${item.desc}</div>
+                <div class="item-user">发布者：${item.user}</div>
+                <div class="item-type">${item.type}</div>
+                <button class="item-btn" onclick="sendExchange(${item.id})">申请交换</button>
+                <button class="item-btn" onclick="startChat('${item.user}')">私信聊天</button>
+            </div>
+        </div>
+    `).join('') : '<div class="text-center">暂无物品可浏览</div>';
+}
+
+function renderMyItems() {
+    const box = document.getElementById('myItemsBox');
+    const items = Storage.get('items').filter(i => i.user === currentUser);
+    box.innerHTML = items.length ? items.map(item => `
+        <div class="item-card">
+            <img src="${item.img}" class="item-img">
+            <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-desc">${item.desc}</div>
+                <div class="item-type">${item.type}</div>
+                <button class="item-btn danger" onclick="deleteItem(${item.id})">删除物品</button>
+            </div>
+        </div>
+    `).join('') : '<div class="text-center">暂无物品，点击发布</div>';
+}
+
+function deleteItem(id) {
+    let items = Storage.get('items');
+    items = items.filter(i => i.id !== id);
+    Storage.set('items', items);
+    renderMyItems();
+}
+
+// ============= 交换申请 =============
+function sendExchange(itemId) {
+    const item = Storage.get('items').find(i => i.id === itemId);
+    const notices = Storage.get('notices');
+    notices.push({
+        id: Date.now(), from: currentUser, to: item.user,
+        item: item.name, content: `想交换你的【${item.name}】`,
+        time: new Date().toLocaleString(), status: 'pending'
+    });
+    Storage.set('notices', notices);
+    alert("交换申请已发送，等待对方回复");
+}
+
+// ============= 通知渲染 + 同意/拒绝生效 =============
+function renderNotices() {
+    const box = document.getElementById('noticeBox');
+    const list = Storage.get('notices').filter(n => n.to === currentUser);
+    box.innerHTML = list.length ? list.map(n => `
+        <div class="notice-item">
+            <div class="notice-title">${n.status === 'pending' ? '待处理' : n.status === 'agree' ? '已同意' : '已拒绝'}</div>
+            <div class="notice-time">${n.time}</div>
+            <div class="notice-content">用户【${n.from}】${n.content}</div>
+            ${n.status === 'pending' ? `
+                <button class="notice-btn notice-agree" onclick="handleNotice(${n.id},'agree')">同意交换</button>
+                <button class="notice-btn notice-refuse" onclick="handleNotice(${n.id},'refuse')">拒绝交换</button>
+            ` : ''}
+        </div>
+    `).join('') : '<div class="text-center">暂无通知</div>';
+}
+
+function handleNotice(id, status) {
+    const notices = Storage.get('notices');
+    const index = notices.findIndex(n => n.id === id);
+    notices[index].status = status;
+    Storage.set('notices', notices);
+    renderNotices();
+    alert(`已${status === 'agree' ? '同意' : '拒绝'}该交换请求`);
+}
+
+// ============= 私信聊天系统 =============
+function startChat(target) {
+    currentChatTarget = target;
+    showPage('chat');
+}
+
+function renderChatList() {
+    const list = document.getElementById('chatUserList');
+    const users = Storage.get('users').filter(u => u.username !== currentUser);
+    list.innerHTML = users.length ? users.map(u => `
+        <div class="chat-item ${currentChatTarget === u.username ? 'active' : ''}" onclick="selectChat('${u.username}')">
+            <div>${u.username}</div>
+        </div>
+    `).join('') : '<div class="text-center">暂无其他用户</div>';
+    renderMessages();
+}
+
+function selectChat(target) {
+    currentChatTarget = target;
+    renderChatList();
+    renderMessages();
+    document.getElementById('chatTargetName').innerText = `与 ${target} 聊天`;
+}
+
+function renderMessages() {
+    const box = document.getElementById('chatMessages');
+    const msgs = Storage.get('messages').filter(m => 
+        (m.from === currentUser && m.to === currentChatTarget) ||
+        (m.from === currentChatTarget && m.to === currentUser)
+    );
+    box.innerHTML = msgs.map(m => `
+        <div class="msg ${m.from === currentUser ? 'msg-me' : 'msg-you'}">
+            <div class="msg-bubble">${m.content}</div>
+        </div>
+    `).join('');
+    box.scrollTop = box.scrollHeight;
+}
+
+function sendMessage() {
+    const content = document.getElementById('chatInput').value.trim();
+    if(!content || !currentChatTarget) return;
+    const msgs = Storage.get('messages');
+    msgs.push({
+        from: currentUser, to: currentChatTarget,
+        content, time: new Date().toLocaleString()
+    });
+    Storage.set('messages', msgs);
+    document.getElementById('chatInput').value = '';
+    renderMessages();
+}
+
+// ============= 后台统计渲染 =============
+function renderAdminStats() {
+    if (currentUser !== ADMIN_USERNAME) return;
+    const users = Storage.get('users');
+    const items = Storage.get('items');
+    const notices = Storage.get('notices');
+    const messages = Storage.get('messages');
+
+    document.getElementById('stat-users').innerText = users.length;
+    document.getElementById('stat-items').innerText = items.length;
+    document.getElementById('stat-notices').innerText = notices.length;
+    document.getElementById('stat-messages').innerText = messages.length;
+
+    document.getElementById('stat-user-list').innerHTML = 
+        users.map(u => `<p>${u.username}</p>`).join('');
+}
+</script>
+
+</body>
+</html>
